@@ -1,0 +1,8 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/usr/share/blender/3.6/scripts/modules"
+    ],
+    "python.analysis.extraPaths": [
+        "/usr/share/blender/3.6/scripts/modules"
+    ]
+}
