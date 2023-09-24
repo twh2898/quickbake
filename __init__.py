@@ -1,34 +1,31 @@
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTIBILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 import bpy
 
 bl_info = {
-    "name": "quickbake",
+    "name": "Quick Bake",
     "author": "Thomas Harrison",
     "description": "",
     "blender": (2, 80, 0),
     "version": (0, 0, 1),
     "location": "",
     "warning": "",
-    "category": "Object"
+    "category": "Render"
 }
 
 
-class MY_OT_rem_doubles_bmesh(bpy.types.Operator):
-    """Remove Doubles on Objects in Selection"""
-    bl_idname = "object.remove_doubles_bmesh"
-    bl_label = "Remove Doubles (bmesh)"
+class QuickBakeToolPropertyGroup(bpy.types.PropertyGroup):
+    merge_dist: bpy.props.FloatProperty(  # type: ignore
+        name="Merge Distance",
+        description="Merge Distance",
+        min=0.0,
+        step=0.1,
+        default=0.02
+    )
+
+
+class QuickBake_OT_bake(bpy.types.Operator):
+    """Do the bake."""
+    bl_idname = "render.quickbake_bake"
+    bl_label = "Bake"
     bl_options = {'REGISTER', 'UNDO'}
 
     merge_dist: bpy.props.FloatProperty(  # type: ignore
@@ -45,16 +42,25 @@ class MY_OT_rem_doubles_bmesh(bpy.types.Operator):
         return (obj is not None and obj.type == 'MESH')
 
     def execute(self, context):
-        meshes = set(
-            o.data for o in context.selected_objects if o.type == 'MESH')
-        verts_before = sum(len(o.vertices) for o in meshes)
+        obj = context.active_object
+        props = context.scene.QuickBakeToolPropertyGroup
+        self.merge_dist = props.merge_dist
+
+
+        if obj is None:
+            self.report({'ERROR'}, 'No active object')
+            return {'CANCELLED'}
+
+        if obj.type != 'MESH':
+            self.report({'ERROR'}, 'Active object must be a mesh')
+            return {'CANCELLED'}
 
         return {'FINISHED'}
 
 
-class MY_PT_custom(bpy.types.Panel):
+class QuickBake_PT_main(bpy.types.Panel):
     """Creates a Sub-Panel in the Property Area of the 3D View"""
-    bl_label = "My Tools"
+    bl_label = "Quick Bake"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Tool"
@@ -68,8 +74,12 @@ class MY_PT_custom(bpy.types.Panel):
         layout = self.layout
 
         row = layout.row()
-        row.operator(MY_OT_rem_doubles_bmesh.bl_idname)
+        row.operator(QuickBake_OT_bake.bl_idname)
         layout.separator()
+
+        props = context.scene.QuickBakeToolPropertyGroup
+        row = layout.row()
+        row.prop(props, "merge_dist")
 
         row = layout.row()
         row.label(text="{} Objects in Selection".format(len(sel_objs)))
@@ -79,13 +89,18 @@ class MY_PT_custom(bpy.types.Panel):
 
 
 def register():
-    bpy.utils.register_class(MY_OT_rem_doubles_bmesh)
-    bpy.utils.register_class(MY_PT_custom)
+    bpy.utils.register_class(QuickBake_OT_bake)
+    bpy.utils.register_class(QuickBake_PT_main)
+    bpy.utils.register_class(QuickBakeToolPropertyGroup)
+    bpy.types.Scene.QuickBakeToolPropertyGroup = bpy.props.PointerProperty(
+        type=QuickBakeToolPropertyGroup)
 
 
 def unregister():
-    bpy.utils.unregister_class(MY_OT_rem_doubles_bmesh)
-    bpy.utils.unregister_class(MY_PT_custom)
+    bpy.utils.unregister_class(QuickBake_OT_bake)
+    bpy.utils.unregister_class(QuickBake_PT_main)
+    bpy.utils.unregister_class(QuickBakeToolPropertyGroup)
+    del bpy.types.Scene.QuickBakeToolPropertyGroup
 
 
 if __name__ == "__main__":
