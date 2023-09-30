@@ -8,6 +8,9 @@ class QuickBake_OT_bake(bpy.types.Operator):
     bl_label = "Bake"
     bl_options = {'REGISTER', 'UNDO'}
 
+    def _l(self, msg):
+        self.report({'INFO'}, msg)
+
     @classmethod
     def poll(cls, context):
         obj = context.active_object
@@ -34,8 +37,11 @@ class QuickBake_OT_bake(bpy.types.Operator):
     def _unwrap_uv(self, obj, uv):
         active_layer = None
         for layer in obj.data.uv_layers:
+            self._l('Unwrap checking layer %s' % layer.name)
             if layer.active:
+                self._l('Layer %s is active' % layer.name)
                 active_layer = layer
+                self._last_active = active_layer
                 break
         uv.active = True
         bpy.ops.object.mode_set(mode='EDIT')
@@ -51,6 +57,25 @@ class QuickBake_OT_bake(bpy.types.Operator):
             bake_uv = obj.data.uv_layers.new(name=name)
             self._unwrap_uv(obj, bake_uv)
         return bake_uv
+
+    def cleanup_uv(self, obj, name):
+        bake_uv = obj.data.uv_layers.get(name)
+        if bake_uv is not None:
+            obj.data.uv_layers.remove(bake_uv)
+
+        if self._last_active is not None:
+            self._last_active.active = True
+
+        for layer in obj.data.uv_layers:
+            self._l('Checking layer %s' % layer.name)
+            if layer.active:
+                self._l('Found active layer %s' % layer.name)
+                break
+        else:
+            self._l('Did not find active layer')
+
+        # self.report({'INFO'}, 'Baking pass %s' % dir(obj.data.uv_layers.active))
+        # obj.data.uv_layers.active = True
 
     def setup_image(self, obj, bake_nodes, bake_name, pass_name, reuse_tex):
         image_name = obj.name + '_' + bake_name + '_' + pass_name
@@ -121,7 +146,7 @@ class QuickBake_OT_bake(bpy.types.Operator):
 
             bpy.ops.object.bake(type=pass_type,
                                 pass_filter={'COLOR'},
-                                uv_layer='bake_uv',
+                                uv_layer=props.bake_uv,
                                 save_mode=save_mode,
                                 filepath=filepath,
                                 )
@@ -138,6 +163,6 @@ class QuickBake_OT_bake(bpy.types.Operator):
 
         if props.clean_up:
             self.cleanup_nodes(obj)
-            obj.data.uv_layers.remove(bake_uv)
+            self.cleanup_uv(obj, props.bake_uv)
 
         return {'FINISHED'}
