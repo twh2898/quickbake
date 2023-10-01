@@ -1,10 +1,13 @@
+"""QuickBake n Menu."""
+
 import bpy
 
 from .op import QuickBake_OT_bake
 
 
 class QuickBake_PT_main(bpy.types.Panel):
-    """Creates a Sub-Panel in the Property Area of the 3D View"""
+    """Creates a Sub-Panel in the Property Area of the 3D View."""
+
     bl_label = "Quick Bake"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -12,10 +15,7 @@ class QuickBake_PT_main(bpy.types.Panel):
     bl_context = "objectmode"
 
     def draw(self, context):
-        sel_objs = context.selected_objects
-        sel_vert_count = sum(len(o.data.vertices)
-                             for o in sel_objs if o.type == 'MESH')
-
+        """Override Panel draw method."""
         layout = self.layout
 
         row = layout.row()
@@ -24,6 +24,7 @@ class QuickBake_PT_main(bpy.types.Panel):
 
         props = context.scene.QuickBakeToolPropertyGroup
 
+        layout.label(text='Texture')
         row = layout.row()
         row.prop(props, "bake_name")
 
@@ -31,11 +32,21 @@ class QuickBake_PT_main(bpy.types.Panel):
         row.prop(props, "bake_uv")
 
         layout.separator()
+        layout.label(text='Material')
+        row = layout.row()
+        row.prop(props, "create_mat")
+
+        row = layout.row()
+        row.prop(props, "mat_name")
+
+        layout.separator()
         layout.label(text='Options')
         row = layout.row()
+        row.enabled = not props.create_mat
         row.prop(props, "reuse_tex")
 
         row = layout.row()
+        row.enabled = not props.create_mat
         row.prop(props, "clean_up")
 
         # layout.separator()

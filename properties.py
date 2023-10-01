@@ -14,6 +14,18 @@ class QuickBakeToolPropertyGroup(bpy.types.PropertyGroup):
         default=True
     )
 
+    create_mat: bpy.props.BoolProperty(  # type: ignore
+        name="Create Material",
+        description="Create a material after baking and assign it.",
+        default=True
+    )
+
+    mat_name: bpy.props.StringProperty(  # type: ignore
+        name="Name",
+        description="Name used to create a new material after baking",
+        default="BakeMaterial"
+    )
+
     save_img: bpy.props.BoolProperty(  # type: ignore
         name="Save Images",
         description="Write images to file after baking",
