@@ -2,36 +2,28 @@ import os
 import bpy
 
 
-class QuickBake_OT_bake(bpy.types.Operator):
-    """Do the bake."""
-    bl_idname = "render.quickbake_bake"
-    bl_label = "Bake"
-    bl_options = {'REGISTER', 'UNDO'}
+def setup_bake_nodes(obj):
+    bake_nodes = []
+    for mat in obj.data.materials:
+        mat.use_nodes = True
+        nodes = mat.node_tree.nodes
+        texture_node = nodes.new('ShaderNodeTexImage')
+        texture_node.name = 'Bake_node'
+        texture_node.select = True
+        nodes.active = texture_node
+        bake_nodes.append(texture_node)
+    return bake_nodes
 
-    @classmethod
-    def poll(cls, context):
-        obj = context.active_object
-        return (obj is not None and obj.type == 'MESH')
 
-    def setup_nodes(self, obj):
-        bake_nodes = []
-        for mat in obj.data.materials:
-            mat.use_nodes = True
-            nodes = mat.node_tree.nodes
-            texture_node = nodes.new('ShaderNodeTexImage')
-            texture_node.name = 'Bake_node'
-            texture_node.select = True
-            nodes.active = texture_node
-            bake_nodes.append(texture_node)
-        return bake_nodes
+def cleanup_bake_nodes(obj):
+    for mat in obj.data.materials:
+        for n in mat.node_tree.nodes:
+            if n.name == 'Bake_node':
+                mat.node_tree.nodes.remove(n)
 
-    def cleanup_nodes(self, obj):
-        for mat in obj.data.materials:
-            for n in mat.node_tree.nodes:
-                if n.name == 'Bake_node':
-                    mat.node_tree.nodes.remove(n)
 
-    def _unwrap_uv(self, obj, uv):
+def setup_bake_uv(obj, name):
+    def unwrap_uv(obj, uv):
         active_layer = None
         for layer in obj.data.uv_layers:
             if layer.active:
@@ -43,25 +35,37 @@ class QuickBake_OT_bake(bpy.types.Operator):
         bpy.ops.uv.smart_project(island_margin=0.001)
         bpy.ops.object.mode_set(mode='OBJECT')
         uv.active = False
-        active_layer.active = True
+        active_layer.active = True  # type: ignore
 
-    def setup_uv(self, obj, name):
-        bake_uv = obj.data.uv_layers.get(name)
-        if bake_uv is None:
-            bake_uv = obj.data.uv_layers.new(name=name)
-            self._unwrap_uv(obj, bake_uv)
-        return bake_uv
+    bake_uv = obj.data.uv_layers.get(name)
+    if bake_uv is None:
+        bake_uv = obj.data.uv_layers.new(name=name)
+        unwrap_uv(obj, bake_uv)
+    return bake_uv
 
-    def setup_image(self, obj, bake_nodes, bake_name, pass_name, reuse_tex):
-        image_name = obj.name + '_' + bake_name + '_' + pass_name
-        img = bpy.data.images.get(image_name)
-        if img is None or not reuse_tex:
-            img = bpy.data.images.new(image_name, 1024, 1024)
 
-        for node in bake_nodes:
-            node.image = img
+def setup_bake_image(obj, bake_nodes, bake_name, pass_name, reuse_tex):
+    image_name = obj.name + '_' + bake_name + '_' + pass_name
+    img = bpy.data.images.get(image_name)
+    if img is None or not reuse_tex:
+        img = bpy.data.images.new(image_name, 1024, 1024)
 
-        return img
+    for node in bake_nodes:
+        node.image = img
+
+    return img
+
+
+class QuickBake_OT_bake(bpy.types.Operator):
+    """Do the bake."""
+    bl_idname = "render.quickbake_bake"
+    bl_label = "Bake"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        obj = context.active_object
+        return (obj is not None and obj.type == 'MESH')
 
     def execute(self, context):
         obj = context.active_object
@@ -76,8 +80,8 @@ class QuickBake_OT_bake(bpy.types.Operator):
 
         props = context.scene.QuickBakeToolPropertyGroup
 
-        bake_nodes = self.setup_nodes(obj)
-        bake_uv = self.setup_uv(obj, props.bake_uv)
+        bake_nodes = setup_bake_nodes(obj)
+        bake_uv = setup_bake_uv(obj, props.bake_uv)
 
         passes = []
         if props.diffuse_enabled:
@@ -104,7 +108,7 @@ class QuickBake_OT_bake(bpy.types.Operator):
             passes.append('TRANSMISSION')
 
         for pass_type in passes:
-            img = self.setup_image(obj,
+            img = setup_bake_image(obj,
                                    bake_nodes,
                                    props.bake_name,
                                    pass_type.lower(),
@@ -117,27 +121,30 @@ class QuickBake_OT_bake(bpy.types.Operator):
             filepath = ''
             if props.save_img:
                 save_mode = 'EXTERNAL'
-                filepath = os.path.join(props.image_path, img.name + '.png')
+                img_base_path = bpy.path.abspath(props.image_path)
+                self.report({'INFO'}, 'Image base path %s' % img_base_path)
+                filepath = os.path.join(img_base_path, img.name + '.png')
+
+            self.report({'INFO'}, 'Save mode %s' % save_mode)
 
             bpy.ops.object.bake(type=pass_type,
                                 pass_filter={'COLOR'},
                                 uv_layer='bake_uv',
-                                save_mode=save_mode,
-                                filepath=filepath,
+                                save_mode='INTERNAL',
+                                # save_mode=save_mode,
+                                # filepath=filepath,
                                 )
 
-            # if props.save_img:
-            #     filepath = os.path.join(props.image_path, img.name + '.png')
-            #     self.report({'INFO'}, 'Baking cwd is %s' % os.getcwd())
-            #     self.report({'INFO'}, 'Baking path is %s' % filepath)
-            #     img.filepath_raw = filepath
-            #     img.file_format = 'PNG'
-            #     img.save_render(filepath=filepath)
+            if props.save_img:
+                filepath = os.path.join(props.image_path, img.name + '.png')
+                img.filepath = filepath
+                img.file_format = 'PNG'
+                # img.save_render(filepath=filepath)
+                img.save()
 
         self.report({'INFO'}, 'Baking complete')
 
         if props.clean_up:
-            self.cleanup_nodes(obj)
-            obj.data.uv_layers.remove(bake_uv)
+            cleanup_bake_nodes(obj)
 
         return {'FINISHED'}
