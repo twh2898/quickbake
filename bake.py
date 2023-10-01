@@ -75,7 +75,7 @@ def setup_bake_uv(obj, name):
     return bake_uv
 
 
-def setup_bake_image(obj, bake_nodes, bake_name, pass_name, reuse_tex, is_data=False):
+def setup_bake_image(obj, bake_nodes, bake_name, bake_size, pass_name, reuse_tex, is_data=False):
     _l.info('Creating image for baking object %s', obj.name)
 
     image_name = obj.name + '_' + bake_name + '_' + pass_name
@@ -83,7 +83,7 @@ def setup_bake_image(obj, bake_nodes, bake_name, pass_name, reuse_tex, is_data=F
 
     img = bpy.data.images.get(image_name)
     if img is None or not reuse_tex:
-        img = bpy.data.images.new(image_name, 1024, 1024, is_data=is_data)
+        img = bpy.data.images.new(image_name, bake_size, bake_size, is_data=is_data)
 
     else:
         _l.debug('Using existing image')

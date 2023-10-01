@@ -1,6 +1,6 @@
 # import os
 import bpy
-from .bake import setup_bake_image, setup_bake_nodes, setup_bake_uv
+from .bake import setup_bake_image, setup_bake_nodes, setup_bake_uv, cleanup_bake_nodes
 from .material import setup_bake_material
 
 import logging
@@ -90,6 +90,7 @@ class QuickBake_OT_bake(bpy.types.Operator):
             img = setup_bake_image(obj,
                                    bake_nodes,
                                    props.bake_name,
+                                   props.bake_size,
                                    pass_type.lower(),
                                    props.reuse_tex,
                                    pass_type == 'NORMAL')

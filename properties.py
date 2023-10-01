@@ -51,6 +51,14 @@ class QuickBakeToolPropertyGroup(bpy.types.PropertyGroup):
         default="bake_uv"
     )
 
+    bake_size: bpy.props.IntProperty(  # type: ignore
+        name="Size",
+        description="Resolution for the bake texture",
+        default=1024,
+        soft_min=1024,
+        step=1024
+    )
+
     diffuse_enabled: bpy.props.BoolProperty(  # type: ignore
         name="Diffuse",
         description="Bake the diffuse map",

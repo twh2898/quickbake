@@ -31,6 +31,9 @@ class QuickBake_PT_main(bpy.types.Panel):
         row = layout.row()
         row.prop(props, "bake_uv")
 
+        row = layout.row()
+        row.prop(props, "bake_size")
+
         layout.separator()
         layout.label(text='Material')
         row = layout.row()
