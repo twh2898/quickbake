@@ -116,17 +116,19 @@ def setup_bake_material(obj, name, bake_uv_name, diffuse, roughness, normal):
 
     uv_node = nodes.new(type='ShaderNodeUVMap')
     uv_node.uv_map = bake_uv_name
-    uv_node.location.x -= 800
+    uv_node.location.x -= 1200
+    # uv_node.location.y += 300
 
     mapping_node = nodes.new(type='ShaderNodeMapping')
-    mapping_node.location.x -= 600
+    mapping_node.location.x -= 1000
+    # mapping_node.location.y += 300
     links.new(uv_node.outputs['UV'], mapping_node.inputs['Vector'])
 
-    def make_tex_node(img):
+    def make_tex_node(img, y):
         tex_node = nodes.new(type='ShaderNodeTexImage')
         tex_node.image = img
-        tex_node.location.y += 300
-        tex_node.location.x -= 400
+        tex_node.location.x -= 600
+        tex_node.location.y += y
 
         # links.new(mapping_node.outputs[0], tex_node.inputs['Vector'])
         links.new(mapping_node.outputs['Vector'], tex_node.inputs['Vector'])
@@ -136,13 +138,13 @@ def setup_bake_material(obj, name, bake_uv_name, diffuse, roughness, normal):
 
         return tex_node
 
-    diff_node = make_tex_node(diffuse)
+    diff_node = make_tex_node(diffuse, 400)
     links.new(diff_node.outputs['Color'], principled_node.inputs['Base Color'])
 
-    rough_node = make_tex_node(roughness)
+    rough_node = make_tex_node(roughness, 100)
     links.new(rough_node.outputs['Color'], principled_node.inputs['Roughness'])
 
-    norm_node = make_tex_node(normal)
+    norm_node = make_tex_node(normal, -200)
     norm_map_node = nodes.new(type='ShaderNodeNormalMap')
     norm_map_node.location.x -= 300
     links.new(norm_node.outputs['Color'], norm_map_node.inputs['Color'])
