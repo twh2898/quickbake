@@ -38,13 +38,13 @@ class QuickBake_PT_main(bpy.types.Panel):
         row = layout.row()
         row.prop(props, "clean_up")
 
-        layout.separator()
-        layout.label(text='Output')
-        row = layout.row()
-        row.prop(props, "save_img")
+        # layout.separator()
+        # layout.label(text='Output')
+        # row = layout.row()
+        # row.prop(props, "save_img")
 
-        row = layout.row()
-        row.prop(props, "image_path")
+        # row = layout.row()
+        # row.prop(props, "image_path")
 
         layout.separator()
         layout.label(text='Layers')
